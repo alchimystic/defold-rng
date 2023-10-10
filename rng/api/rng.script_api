@@ -1,0 +1,15 @@
+- name: rnd
+  type: table
+  desc: Factory of random number generator instances (non-global) for specific algorithms. Supports pcg32
+  members:
+
+  - name: pcg32
+    type: function
+    desc: Creates a pcg32 instance. Can specify init_state and init_seq to start with a seed, or nothing to get a random one
+    parameters:
+    - name: init_state
+      type: number
+      desc: init_state is the starting state for the PCG32, you can pass any 64-bit value.  
+    - name: init_seq
+      type: number
+      desc: init_seq selects the output sequence for the PCG32, you can pass any 64-bit value, although only the low 63 bits are significant.

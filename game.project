@@ -1,0 +1,25 @@
+[bootstrap]
+main_collection = /example/main.collectionc
+
+[script]
+shared_state = 1
+
+[display]
+width = 320
+height = 200
+
+[project]
+title = defold-rng
+
+[library]
+include_dirs = rng
+
+[android]
+input_method = HiddenInputField
+
+[ios]
+bundle_identifier = com.example.todo
+
+[osx]
+bundle_identifier = com.example.todo
+

@@ -1,0 +1,130 @@
+
+local function assert_double(actual, expected)
+	assert(tostring(actual) == tostring(expected))
+end
+	
+local function test_pcg32_numbers()
+
+	local pcg = rng.pcg32(42, 54)
+
+	local function next() 
+		return pcg:number()
+	end
+	
+	-- Checks first 5 numbers for seed 42 54
+	-- according to https://www.rosettacode.org/wiki/Pseudo-random_numbers/PCG32
+	assert(next() == 2707161783)
+	assert(next() == 2068313097)
+	assert(next() == 3122475824)
+	assert(next() == 2211639955)
+	assert(next() == 3215226955)
+	
+end
+
+local function test_pcg32_double_numbers()
+	local pcg = rng.pcg32(42, 54)
+
+	local function next() 
+		return pcg:double()
+	end
+
+	assert_double(next(), 0.63031022041105)
+	assert_double(next(), 0.48156666965224)
+	assert_double(next(), 0.72700805589557)
+	assert_double(next(), 0.51493755425327)
+	assert_double(next(), 0.74860336142592)
+end
+
+local function test_pcg32_ranges()
+
+	local pcg = rng.pcg32(42, 54)
+
+	local function next(min, max) 
+		return pcg:range(min, max)
+	end
+
+	assert(next(1, 100) == 84)
+	assert(next(1, 100) == 98)
+	assert(next(1, 100) == 25)
+	assert(next(1, 100) == 56)
+	assert(next(1, 100) == 56)
+	
+	assert(next(50, 50) == 50)
+	assert(not pcall(function() next(100, 1) end))
+end
+
+local function test_pcg32_double_ranges()
+
+	local pcg = rng.pcg32(42, 54)
+
+	local function next(min, max) 
+		return pcg:double_range(min, max)
+	end
+
+	assert_double(next(2.5, 7.5), 5.151551102789)
+	assert_double(next(2.5, 7.5), 4.4078333488218)
+	assert_double(next(2.5, 7.5), 5.6350402803242)
+	assert_double(next(2.5, 7.5), 4.5746877718658)
+	assert_double(next(2.5, 7.5), 5.7430168080011)
+
+	assert_double(next(5.5, 5.5), 5.5)
+	assert(not pcall(function() next(7.5, 2.5) end))
+end
+
+local function test_pcg32_roll()
+	local pcg = rng.pcg32(42, 54)
+
+	local function next() 
+		return pcg:roll()
+	end
+
+	assert(next() == 3)
+	assert(next() == 3)
+	assert(next() == 2)
+	assert(next() == 1)
+	assert(next() == 1)
+end
+
+local function test_pcg32_toss()
+	local pcg = rng.pcg32(42, 54)
+
+	local function next() 
+		return pcg:toss()
+	end
+
+	assert(next() == 1)
+	assert(next() == 1)
+	assert(next() == 0)
+	assert(next() == 1)
+	assert(next() == 1)
+end
+
+local function test_pcg32_seed()
+	local pcg1 = rng.pcg32()
+	local pcg2 = rng.pcg32(2, 2)
+	local pcg3 = rng.pcg32(2, 2)
+
+	-- checks a pcg32 can be created without specifying seed
+	pcg1:number()
+	-- checks 2 pcg32 instances with the same seed produce the same results
+	assert(pcg2:number() == pcg3:number())
+	assert(pcg2:number() == pcg3:number())
+	assert(pcg2:number() == pcg3:number())
+	assert(pcg2:number() == pcg3:number())
+	assert(pcg2:number() == pcg3:number())
+end
+
+function test_pcg32()
+	test_pcg32_numbers()
+	test_pcg32_double_numbers()
+	test_pcg32_ranges()
+	test_pcg32_double_ranges()
+	test_pcg32_roll()
+	test_pcg32_toss()
+	test_pcg32_seed()
+end
+
+function init(self)
+	test_pcg32()
+end
+
