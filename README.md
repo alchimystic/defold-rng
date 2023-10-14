@@ -91,4 +91,10 @@ Roll the dice. Returns between 1-6
 
 ## Release Notes
 
+1.0
 
+Initial release.
+
+- rng: supports creation of pcg32 instance with random seed (based on entropy)
+- rng: supports creation of pcg32 instance with initial state and increment seed
+- pcg32 instance supports: seed, number, double_num, range, double_range, toss and roll
