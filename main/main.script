@@ -35,40 +35,46 @@ local function test_pcg32_double_numbers()
 	assert_double(next(), 0.74860336142592)
 end
 
+
+local function check_pcg32_42_54_seed(pcg)
+
+	local function next() 
+		return pcg:range(1, 100)
+	end
+	
+	assert(next() == 84)
+	assert(next() == 98)
+	assert(next() == 25)
+	assert(next() == 56)
+	assert(next() == 56)	
+end
+
 local function test_pcg32_ranges()
 
 	local pcg = rng.pcg32(42, 54)
 
-	local function next(min, max) 
-		return pcg:range(min, max)
-	end
+	check_pcg32_42_54_seed(pcg)
 
-	assert(next(1, 100) == 84)
-	assert(next(1, 100) == 98)
-	assert(next(1, 100) == 25)
-	assert(next(1, 100) == 56)
-	assert(next(1, 100) == 56)
-	
-	assert(next(50, 50) == 50)
-	assert(not pcall(function() next(100, 1) end))
+	assert(pcg:range(50, 50) == 50)
+	assert(not pcall(function() pcg:range(100, 1) end))
 end
 
 local function test_pcg32_double_ranges()
 
 	local pcg = rng.pcg32(42, 54)
 
-	local function next(min, max) 
-		return pcg:double_range(min, max)
+	local function next() 
+		return pcg:double_range(2.5, 7.5)
 	end
 
-	assert_double(next(2.5, 7.5), 5.151551102789)
-	assert_double(next(2.5, 7.5), 4.4078333488218)
-	assert_double(next(2.5, 7.5), 5.6350402803242)
-	assert_double(next(2.5, 7.5), 4.5746877718658)
-	assert_double(next(2.5, 7.5), 5.7430168080011)
+	assert_double(next(), 5.151551102789)
+	assert_double(next(), 4.4078333488218)
+	assert_double(next(), 5.6350402803242)
+	assert_double(next(), 4.5746877718658)
+	assert_double(next(), 5.7430168080011)
 
-	assert_double(next(5.5, 5.5), 5.5)
-	assert(not pcall(function() next(7.5, 2.5) end))
+	assert_double(pcg:double_range(5.5, 5.5), 5.5)
+	assert(not pcall(function() pcg:double_range(7.5, 2.5) end))
 end
 
 local function test_pcg32_roll()
@@ -104,8 +110,13 @@ local function test_pcg32_seed()
 	local pcg2 = rng.pcg32(2, 2)
 	local pcg3 = rng.pcg32(2, 2)
 
-	-- checks a pcg32 can be created without specifying seed
+	-- verifies if a pcg32 can be created without specifying seed
 	pcg1:number()
+
+	-- verifies if a pcg32 can be reseeded
+	pcg1:seed(42, 54)
+	check_pcg32_42_54_seed(pcg1)
+	
 	-- checks 2 pcg32 instances with the same seed produce the same results
 	assert(pcg2:number() == pcg3:number())
 	assert(pcg2:number() == pcg3:number())

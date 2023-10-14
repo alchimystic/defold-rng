@@ -45,18 +45,18 @@ class LuaPcg32 {
 
     static int seed(lua_State *l) {
         Pcg32 *o = checkInstance(l, 1);
-        int state = luaL_optinteger(l, 2, 0);
-        int seq = 0;
+        long state = luaL_optinteger(l, 2, 0);
+        long inc = 0;
 
         if (state == 0) {
             uint64_t* seeds = new_seed();          
             state = seeds[0];
-            seq = seeds[1];        
+            inc = seeds[1];        
         } else {
-            seq = luaL_optinteger(l, 2, 0);
+            inc = luaL_optinteger(l, 3, 0);
         }
-
-        o->set_seed(state, seq);
+                
+        o->set_seed(state, inc);
         return 0;
     }
     
@@ -128,7 +128,7 @@ class LuaPcg32 {
         return 1;        
     }
     
-    static int gc_account(lua_State *L) {
+    static int gc_pcg(lua_State *L) {
         Pcg32 *o = (Pcg32*)lua_unboxpointer(L, 1);
         delete o;
         return 0;
@@ -136,8 +136,10 @@ class LuaPcg32 {
 
     public:
     static void Register(lua_State* L) {
-        lua_newtable(L);                 int methodtable = lua_gettop(L);
-        luaL_newmetatable(L, className); int metatable   = lua_gettop(L);
+        lua_newtable(L);                 
+        int methodtable = lua_gettop(L);
+        luaL_newmetatable(L, className); 
+        int metatable   = lua_gettop(L);
 
         lua_pushliteral(L, "__metatable");
         lua_pushvalue(L, methodtable);
@@ -148,7 +150,7 @@ class LuaPcg32 {
         lua_settable(L, metatable);
 
         lua_pushliteral(L, "__gc");
-        lua_pushcfunction(L, gc_account);
+        lua_pushcfunction(L, gc_pcg);
         lua_settable(L, metatable);
 
         lua_pop(L, 1);  // drop metatable
@@ -166,8 +168,8 @@ class LuaPcg32 {
 
         if (arg_count > 0) {
             long stat = luaL_checknumber(L, 1);
-            long seq = luaL_checknumber(L, 2);
-            o->set_seed(stat, seq);    
+            long inc = luaL_checknumber(L, 2);
+            o->set_seed(stat, inc);    
         }
         
         lua_boxpointer(L, o);
@@ -200,7 +202,6 @@ const luaL_reg LuaPcg32::methods[] = {
     method(LuaPcg32, seed),
     method(LuaPcg32, number),
     { "double", LuaPcg32::double_num },
-    //method(LuaPcg32, double_num),
     method(LuaPcg32, range),
     method(LuaPcg32, double_range),
     method(LuaPcg32, roll),

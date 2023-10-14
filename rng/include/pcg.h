@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math.h>
+#include <stdio.h>
 
 class Pcg32
 {
@@ -12,8 +13,8 @@ class Pcg32
 
 	~Pcg32() { Release(); }
 
-	void set_seed(uint64_t stat, uint64_t seq) {
-		pcg32_srandom_r(&state, stat, seq);
+	void set_seed(uint64_t stat, uint64_t inc) {
+		pcg32_srandom_r(&state, stat, inc);
 	}
 
 	uint32_t number() {
