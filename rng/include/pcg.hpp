@@ -1,7 +1,16 @@
 #pragma once
 
+#include "pcg_basic.h"
+
 #include <math.h>
 #include <stdio.h>
+
+extern "C" {
+	#include "lua/lua.h"
+	#include "lua/lauxlib.h"
+	#include "lua/lualib.h"
+}
+
 
 class Pcg32
 {
@@ -47,3 +56,28 @@ class Pcg32
 		//release code goes here
 	}    
 };
+
+class LuaPcg32 {
+	static const char className[];
+	static const luaL_reg methods[];
+
+	public:
+	static void Register(lua_State* L);
+	static int create(lua_State *L);
+	
+	private:
+	static Pcg32* checkInstance(lua_State *L, int narg);
+	static int range_error(lua_State *L);
+	static int fixed_value(lua_State *L, double value);
+	static uint64_t* new_seed();
+	static int seed(lua_State *l);
+	static int number(lua_State *L);
+	static int double_num(lua_State *L);
+	static int range(lua_State *L);
+	static int double_range(lua_State *L);
+	static int roll(lua_State *L);
+	static int toss(lua_State *L);
+	static int gc_pcg(lua_State *L);	
+};
+
+
