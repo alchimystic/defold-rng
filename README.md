@@ -6,7 +6,7 @@ The idea for this extension came from [defold-random](https://github.com/seliman
 
 This extension has 3 aspects:
 * Provide instance based Random Number Generators, not a single global RNG. This benefits procedural generation
-* Support for multiple algorithms (the best/fastest/safest). We start with PCG32, but later we should expect MT19937 and others
+* Support for multiple algorithms (the best/fastest/safest). Currently we have PCG32 and TinyMT32
 * Aimed at performance, implemented in minimal C (with a C++ wrapper for Lua binding)
 
 
@@ -19,9 +19,12 @@ Regarding PCG32, this extension allow you to generate random numbers using minim
 It uses [entropy](https://github.com/imneme/pcg-c/blob/master/extras/entropy.c) seed internally with fallback to time based seed. You can switch to Time based seed and remove the entropy by uncommenting/commenting a few lines on the source code, but I don't think it is necessary. 
 
 
-### MT19937 (Mersenne Twister)
+### TinyMT32 (Tiny Mersenne Twister)
 
-(work in progress)
+As the original Mersene Twister has a relatively large buffer (~2.5kb) for instance based RNG i decided to go for [TinyMT](https://github.com/MersenneTwister-Lab/TinyMT), in the 32 bit variant.
+
+The seed takes one argument only, and if none provided, we seed using a table of 4 random values, taken from entropy (just like PCG32)
+
 
 ## Installation
 You can use defold-rng in your own project by adding this project as a [Defold library dependency](http://www.defold.com/manuals/libraries/). Open your game.project file and in the dependencies field under project add:
@@ -52,14 +55,7 @@ Creates a PCG generator instance given the initial state and seq for seed. You s
 **Caution:** I don't recommend using of 64-bit integers. Consider using 32-bit integers instead. 
 
 
-
-### PCG32
-
-A PCG32 instance has the following methods:
-
-#### seed(`init_state`, `init_seq`)
-
-Sets the new seed for this instance, given state and seq.
+### Common Methods (to all RNG instances)
 
 #### number()
 
@@ -89,7 +85,28 @@ Toss a coin. Returns 0 or 1 (0 = 'H', 1 = 'T')
 Roll the dice. Returns between 1-6
 
 
+### PCG32
+
+Besides the coomon methods, a PCG32 instance has the following methods:
+
+#### seed(`init_state`, `init_seq`)
+
+Sets the new seed for this instance, given state and seq.
+
+### TinyMT32
+
+Besides the coomon methods, a TinyMT32 instance has the following methods:
+
+#### seed(`seed`)
+
+Sets the new seed for this instance, given the actual seed value. If seed == 0, it uses a random seed based on entropy
+
+
 ## Release Notes
+
+1.1
+
+Added support for TinyMT32 (Tiny Mersenne Twister, 32 bits)
 
 1.0
 
