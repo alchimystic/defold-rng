@@ -52,8 +52,17 @@ Creates a PCG generator instance given the initial state and seq for seed. You s
 `init_state` is the starting state for the RNG, you can pass any 64-bit value.  
 `init_seq` selects the output sequence for the RNG, you can pass any 64-bit value, although only the low 63 bits are significant.
 
-**Caution:** I don't recommend using of 64-bit integers. Consider using 32-bit integers instead. 
+#### rng.tinymt32()
 
+Creates a TinyMT32 generator instance with a entropy-based seed of 4 elements. You should use this if you don't care about explicitly providing a seed.
+
+#### rng.tinymt32(`seed`)
+
+Creates a TinyMT32 generator wth a given seed. You can pass any 64-bit value, but 0 will have the same result as a random seed.
+You should use this to specify the seed.
+
+
+**Caution:** I don't recommend using of 64-bit integers. Consider using 32-bit integers instead. 
 
 ### Common Methods (to all RNG instances)
 
