@@ -1,141 +1,150 @@
+--[[
+To test a new algorithm:
+- add a spec table for it (examples: pcg32_spec and tinymt32_spec)
+- add a function to generate a default seed (examples: pcg32() and tinymt32())
+- add a function to test seeds (examples: test_pcg32_seed() and test_tinymt32_seed())
+- fill in the new spec table with all its fields
+- call run_tests(<new_spec>) on init()
+--]]
+
+local pcg32_spec = {}
+local tinymt32_spec = {}
+
+local function collect(func, count) 
+	local result = {}
+	for i=1,count do
+		result[i] = func()
+	end
+	return result
+end
 
 local function assert_double(actual, expected)
 	assert(tostring(actual) == tostring(expected))
 end
-	
-local function test_pcg32_numbers()
 
-	local pcg = rng.pcg32(42, 54)
-
-	local function next() 
-		return pcg:number()
+local function compare_integers(actual, expected)
+	--print(table.concat(actual,", "))	
+	for i = 1, #expected do
+		assert(actual[i] == expected[i])
 	end
-	
-	-- Checks first 5 numbers for seed 42 54
-	-- according to https://www.rosettacode.org/wiki/Pseudo-random_numbers/PCG32
-	assert(next() == 2707161783)
-	assert(next() == 2068313097)
-	assert(next() == 3122475824)
-	assert(next() == 2211639955)
-	assert(next() == 3215226955)
-	
 end
 
-local function test_pcg32_double_numbers()
-	local pcg = rng.pcg32(42, 54)
-
-	local function next() 
-		return pcg:double()
+local function compare_doubles(actual, expected)
+	--print(table.concat(actual,", "))
+	for i = 1, #expected do
+		assert_double(actual[i], expected[i])
 	end
-
-	assert_double(next(), 0.63031022041105)
-	assert_double(next(), 0.48156666965224)
-	assert_double(next(), 0.72700805589557)
-	assert_double(next(), 0.51493755425327)
-	assert_double(next(), 0.74860336142592)
 end
 
-
-local function check_pcg32_42_54_seed(pcg)
-
-	local function next() 
-		return pcg:range(1, 100)
-	end
-	
-	assert(next() == 84)
-	assert(next() == 98)
-	assert(next() == 25)
-	assert(next() == 56)
-	assert(next() == 56)	
+local function test_numbers(gen, expected)
+	compare_integers(collect(function() return gen:number() end, #expected), expected)
 end
 
-local function test_pcg32_ranges()
-
-	local pcg = rng.pcg32(42, 54)
-
-	check_pcg32_42_54_seed(pcg)
-
-	assert(pcg:range(50, 50) == 50)
-	assert(not pcall(function() pcg:range(100, 1) end))
+local function test_ranges(gen, expected)
+	compare_integers(collect(function() return gen:range(1, 100) end, #expected), expected)
+	assert(gen:range(50, 50) == 50)
+	assert(not pcall(function() gen:range(100, 1) end))
 end
 
-local function test_pcg32_double_ranges()
-
-	local pcg = rng.pcg32(42, 54)
-
-	local function next() 
-		return pcg:double_range(2.5, 7.5)
-	end
-
-	assert_double(next(), 5.151551102789)
-	assert_double(next(), 4.4078333488218)
-	assert_double(next(), 5.6350402803242)
-	assert_double(next(), 4.5746877718658)
-	assert_double(next(), 5.7430168080011)
-
-	assert_double(pcg:double_range(5.5, 5.5), 5.5)
-	assert(not pcall(function() pcg:double_range(7.5, 2.5) end))
+local function test_rolls(gen, expected)
+	compare_integers(collect(function() return gen:roll() end, #expected), expected)
 end
 
-local function test_pcg32_roll()
-	local pcg = rng.pcg32(42, 54)
-
-	local function next() 
-		return pcg:roll()
-	end
-
-	assert(next() == 3)
-	assert(next() == 3)
-	assert(next() == 2)
-	assert(next() == 1)
-	assert(next() == 1)
+local function test_tosses(gen, expected)
+	compare_integers(collect(function() return gen:toss() end, #expected), expected)
 end
 
-local function test_pcg32_toss()
-	local pcg = rng.pcg32(42, 54)
+local function test_double_ranges(gen, expected)
+	compare_doubles(collect(function() return gen:double_range(2, 8) end, #expected), expected)
+	assert_double(gen:double_range(5, 5), 5.)
+	assert(not pcall(function() gen:double_range(8, 2) end))
+end
 
-	local function next() 
-		return pcg:toss()
-	end
-
-	assert(next() == 1)
-	assert(next() == 1)
-	assert(next() == 0)
-	assert(next() == 1)
-	assert(next() == 1)
+local function test_double_numbers(gen, expected)
+	compare_doubles(collect(function() return gen:double() end, #expected), expected)
 end
 
 local function test_pcg32_seed()
-	local pcg1 = rng.pcg32()
-	local pcg2 = rng.pcg32(2, 2)
-	local pcg3 = rng.pcg32(2, 2)
+	local func = rng.pcg32
+	local g1 = func()
+	local g2 = func(2, 2)
+	local g3 = func(2, 2)
 
 	-- verifies if a pcg32 can be created without specifying seed
-	pcg1:number()
+	g1:number()
 
 	-- verifies if a pcg32 can be reseeded
-	pcg1:seed(42, 54)
-	check_pcg32_42_54_seed(pcg1)
+	g1:seed(42, 54)
+
+	test_numbers(g1, pcg32_spec.numbers)
 	
 	-- checks 2 pcg32 instances with the same seed produce the same results
-	assert(pcg2:number() == pcg3:number())
-	assert(pcg2:number() == pcg3:number())
-	assert(pcg2:number() == pcg3:number())
-	assert(pcg2:number() == pcg3:number())
-	assert(pcg2:number() == pcg3:number())
+	local g2_values = collect(function() return g2:number() end, 5)
+	local g3_values = collect(function() return g3:number() end, 5)
+	compare_integers(g2_values, g3_values)
 end
 
-function test_pcg32()
-	test_pcg32_numbers()
-	test_pcg32_double_numbers()
-	test_pcg32_ranges()
-	test_pcg32_double_ranges()
-	test_pcg32_roll()
-	test_pcg32_toss()
-	test_pcg32_seed()
+local function test_tinymt32_seed()
+	local func = rng.tinymt32
+	local g1 = func()
+	local g2 = func(22)
+	local g3 = func(22)
+
+	-- verifies if a tinymt32 can be created without specifying seed
+	g1:number()
+
+	-- verifies if a tinymt32 can be reseeded
+	g1:seed(4254)
+
+	test_numbers(g1, tinymt32_spec.numbers)
+
+	-- checks 2 tinymt32 instances with the same seed produce the same results
+	local g2_values = collect(function() return g2:number() end, 5)
+	local g3_values = collect(function() return g3:number() end, 5)
+	compare_integers(g2_values, g3_values)
+end
+
+local function pcg32()
+	return rng.pcg32(42, 54) -- matches https://www.rosettacode.org/wiki/Pseudo-random_numbers/PCG32
+end
+
+local function tinymt32()
+	return rng.tinymt32(4254)
+end
+
+pcg32_spec.numbers = {2707161783, 2068313097, 3122475824, 2211639955, 3215226955}
+pcg32_spec.doubles = {0.63031022041105, 0.48156666965224, 0.72700805589557, 0.51493755425327, 0.74860336142592}
+pcg32_spec.range_numbers = {84, 98, 25, 56, 56}
+pcg32_spec.range_doubles = {5.7818613233468, 4.8894000185862, 6.362048336389, 5.089625326239, 6.4916201696013}
+pcg32_spec.rolls = {3, 3, 2, 1, 1}
+pcg32_spec.tosses = {1, 1, 0, 1, 1}
+pcg32_spec.gen_func = pcg32
+pcg32_spec.seed_test = test_pcg32_seed
+
+tinymt32_spec.numbers = {1452074542, 3691474933, 2977164997, 154753454, 2269693531}
+tinymt32_spec.doubles = {0.33808745024726, 0.85948848468252, 0.69317524251528, 0.03603134630248, 0.52845420571975}
+tinymt32_spec.range_numbers = {34, 86, 70, 4, 53}
+tinymt32_spec.range_doubles = {4.0285247014835, 7.1569309080951, 6.1590514550917, 2.2161880778149, 5.1707252343185}
+tinymt32_spec.rolls = {3, 6, 5, 1, 4}
+tinymt32_spec.tosses = {0, 1, 1, 0, 1}
+tinymt32_spec.gen_func = tinymt32
+tinymt32_spec.seed_test = test_tinymt32_seed
+
+function run_tests(spec)
+	local gen = spec.gen_func
+	test_numbers(gen(), spec.numbers)
+	test_double_numbers(gen(), spec.doubles)
+	test_ranges(gen(), spec.range_numbers)
+	test_double_ranges(gen(), spec.range_doubles)
+	test_rolls(gen(), spec.rolls)
+	test_tosses(gen(), spec.tosses)
+	spec.seed_test()
 end
 
 function init(self)
-	test_pcg32()
+	run_tests(pcg32_spec)
+	run_tests(tinymt32_spec)
+
+	print("-- DONE --")
 end
 
