@@ -388,7 +388,6 @@ dmExtension::Result init_rng(dmExtension::Params *params)
     RngLuaInit(params->m_L); //registers rng
     LuaPcg32::Register(params->m_L);
     LuaTinyMT32::Register(params->m_L);
-        //PcgLuaInit(params->m_L); //registers pcg32
     
     dmLogInfo("Registered %s Extension\n", MODULE_NAME);
     return dmExtension::RESULT_OK;
