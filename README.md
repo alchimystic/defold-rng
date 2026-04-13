@@ -75,7 +75,7 @@ Returns a 32 bit unsigned integer.
 Returns a 32 bit unsigned integer between min and max values. Only for positive numbers(unsigned integers).
 Same as **math.random(3,20)**  
 
-#### double_num()
+#### double()
 
 Returns a floating point between 0-1.  
 Same as **math.random()**
@@ -113,6 +113,10 @@ Sets the new seed for this instance, given the actual seed value. If seed == 0, 
 
 ## Release Notes
 
+1.2
+
+Added actual examples to example/main.script
+
 1.1
 
 Added support for TinyMT32 (Tiny Mersenne Twister, 32 bits)
@@ -123,4 +127,4 @@ Initial release.
 
 - rng: supports creation of pcg32 instance with random seed (based on entropy)
 - rng: supports creation of pcg32 instance with initial state and increment seed
-- pcg32 instance supports: seed, number, double_num, range, double_range, toss and roll
+- pcg32 instance supports: seed, number, double, range, double_range, toss and roll
