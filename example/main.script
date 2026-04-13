@@ -1,0 +1,24 @@
+
+local function demo(gen, what)
+
+	print("--------")
+	print("Demo of", what)
+	print("")
+	print("32 bit unsigned integer:", gen:number())
+	print("32 bit unsigned integer between 1 and 100:", gen:range(1, 100))
+	print("floating point between 0-1:", gen:double())
+	print("floating point between 1 and 100:", gen:double_range(1, 100))
+	print("coin toss, where 0 = 'H' and 1 = 'T':", gen:toss())
+	print("roll a dice:", gen:roll())
+end
+
+function init(self)
+
+	-- demo of tiny mersenne twister 32
+	local gen1 = rng.pcg32(123, 321) -- or rng.pcg32(), if unseeded
+	demo(gen1, "pcg32")
+
+	-- demo of pcg 32
+	local gen2 = rng.tinymt32(123) -- or rng.tinymt32(), if unseeded
+	demo(gen2, "tinymt32")
+end
