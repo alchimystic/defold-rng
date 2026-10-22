@@ -7,8 +7,10 @@ To test a new algorithm:
 - call run_tests(<new_spec>) on init()
 --]]
 
+local debug = false
 local pcg32_spec = {}
 local tinymt32_spec = {}
+local xoshiro128_spec = {}
 
 local function collect(func, count) 
 	local result = {}
@@ -22,15 +24,21 @@ local function assert_double(actual, expected)
 	assert(tostring(actual) == tostring(expected))
 end
 
+local function show_values(actual)
+	if (debug) then
+		print("actual:", table.concat(actual,", "))
+	end
+end
+
 local function compare_integers(actual, expected)
-	--print(table.concat(actual,", "))	
+	show_values(actual)	
 	for i = 1, #expected do
 		assert(actual[i] == expected[i])
 	end
 end
 
 local function compare_doubles(actual, expected)
-	--print(table.concat(actual,", "))
+	show_values(actual)
 	for i = 1, #expected do
 		assert_double(actual[i], expected[i])
 	end
@@ -104,6 +112,26 @@ local function test_tinymt32_seed()
 	compare_integers(g2_values, g3_values)
 end
 
+local function test_xoshiro128_seed()
+	local func = rng.xoshiro128
+	local g1 = func()
+	local g2 = func(22)
+	local g3 = func(22)
+
+	-- verifies if a xoshiro128 can be created without specifying seed
+	g1:number()
+
+	-- verifies if a xoshiro128 can be reseeded
+	g1:seed(4254)
+
+	test_numbers(g1, xoshiro128_spec.numbers)
+
+	-- checks 2 tinymt32 instances with the same seed produce the same results
+	local g2_values = collect(function() return g2:number() end, 5)
+	local g3_values = collect(function() return g3:number() end, 5)
+	compare_integers(g2_values, g3_values)
+end
+
 local function pcg32()
 	return rng.pcg32(42, 54) -- matches https://www.rosettacode.org/wiki/Pseudo-random_numbers/PCG32
 end
@@ -111,6 +139,11 @@ end
 local function tinymt32()
 	return rng.tinymt32(4254)
 end
+
+local function xoshiro128()
+	return rng.xoshiro128(4254)
+end
+
 
 pcg32_spec.numbers = {2707161783, 2068313097, 3122475824, 2211639955, 3215226955}
 pcg32_spec.doubles = {0.63031022041105, 0.48156666965224, 0.72700805589557, 0.51493755425327, 0.74860336142592}
@@ -130,6 +163,15 @@ tinymt32_spec.tosses = {0, 1, 1, 0, 1}
 tinymt32_spec.gen_func = tinymt32
 tinymt32_spec.seed_test = test_tinymt32_seed
 
+xoshiro128_spec.numbers = {1156023140, 779508670, 119392115, 3402008284, 3688418315}
+xoshiro128_spec.doubles = {0.2691575884819, 0.18149346113205, 0.027798116207123, 0.79209172725677, 0.85877680778503}
+xoshiro128_spec.range_numbers = {41, 71, 16, 85, 16}
+xoshiro128_spec.range_doubles = {3.6149455308914, 3.0889607667923, 2.1667886972427, 6.7525503635406, 7.1526608467102}
+xoshiro128_spec.rolls = {3, 5, 6, 5, 6}
+xoshiro128_spec.tosses = {0, 0, 1, 0, 1}
+xoshiro128_spec.gen_func = xoshiro128
+xoshiro128_spec.seed_test = test_tinymt32_seed
+
 function run_tests(spec)
 	local gen = spec.gen_func
 	test_numbers(gen(), spec.numbers)
@@ -144,7 +186,8 @@ end
 function init(self)
 	run_tests(pcg32_spec)
 	run_tests(tinymt32_spec)
-
+	run_tests(xoshiro128_spec)
+	
 	print("-- DONE --")
 end
 

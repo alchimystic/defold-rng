@@ -1,4 +1,3 @@
-
 local function demo(gen, what)
 
 	print("--------")
@@ -13,12 +12,28 @@ local function demo(gen, what)
 end
 
 function init(self)
-
-	-- demo of tiny mersenne twister 32
+	-- demo of pcg 32
 	local gen1 = rng.pcg32(123, 321) -- or rng.pcg32(), if unseeded
 	demo(gen1, "pcg32")
 
-	-- demo of pcg 32
+	-- demo of tiny mersenne twister 32
 	local gen2 = rng.tinymt32(123) -- or rng.tinymt32(), if unseeded
 	demo(gen2, "tinymt32")
+
+	-- demo of xoshiro128**
+	local gen3 = rng.xoshiro128(123) -- or rng.xoshiro128(), if unseeded
+	demo(gen3, "xoshiro128**")
+end
+
+function show(obj)
+	local mt = debug.getmetatable(obj)
+
+	if mt and type(mt.__index) == "table" then
+		print("--- Available Methods ---")
+		for method_name, _ in pairs(mt.__index) do
+			print("Method:", method_name)
+		end
+	else
+		print("Methods are not stored in a standard __index table.")
+	end
 end
