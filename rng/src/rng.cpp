@@ -5,10 +5,12 @@
 #include "entropy.h"
 #include "pcg_basic.h"
 #include "pcg.h"
+#include "xoshiro128.h"
 #include "tinymt32.hpp"
 #include <dmsdk/dlib/log.h>
 #include <dmsdk/sdk.h>
 #include <math.h>
+#include <time.h>
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
@@ -47,10 +49,6 @@ static void RegisterRng(
     lua_pushliteral(L, "__index");
     lua_pushvalue(L, methodtable);
     lua_settable(L, metatable);
-
-    //lua_pushliteral(L, "__gc");
-    //lua_pushcfunction(L, gc_pcg);
-    //lua_settable(L, metatable);
 
     lua_pop(L, 1);  // drop metatable
 
@@ -197,7 +195,7 @@ class LuaTinyMT32 {
     static const char className[];
     static const luaL_reg methods[];
 
-    static TinyMT32 *checkInstance(lua_State *L, int narg) {
+    static TinyMT32* checkInstance(lua_State *L, int narg) {
         luaL_checktype(L, narg, LUA_TUSERDATA);
         void *ud = luaL_checkudata(L, narg, className);
         if(!ud) luaL_typerror(L, narg, className);
@@ -310,6 +308,137 @@ class LuaTinyMT32 {
         return 1;
     }
 };
+
+class LuaXoshiro128 {
+    static const char className[];
+    static const luaL_reg methods[];
+
+    static Xoshiro128Ctx *checkInstance(lua_State *L, int narg) {
+        luaL_checktype(L, narg, LUA_TUSERDATA);
+        void *ud = luaL_checkudata(L, narg, className);
+        if(!ud) luaL_typerror(L, narg, className);
+        return *(Xoshiro128Ctx**)ud;  // unbox pointer
+    }
+
+    static int seed(lua_State* l) {
+        Xoshiro128Ctx *o = checkInstance(l, 1);
+        uint32_t next_seed = (uint32_t)luaL_checkinteger(l, 2);
+        xoshiro128_seed(o, next_seed);
+        return 0;
+    }
+
+    static int jump(lua_State* l) {
+        Xoshiro128Ctx *o = checkInstance(l, 1);
+        xoshiro128_jump(o);
+        return 0;
+    }
+
+    static int number(lua_State* l) {
+        Xoshiro128Ctx *o = checkInstance(l, 1);
+        lua_pushinteger(l, xoshiro128_next(o));
+        return 1;
+    }
+
+    static int range(lua_State* l) {
+        Xoshiro128Ctx *o = checkInstance(l, 1);
+        uint32_t min = (uint32_t)luaL_checkinteger(l, 2);
+        uint32_t max = (uint32_t)luaL_checkinteger(l, 3);
+
+        if (min == max)
+        {
+            return fixed_value(l, min);
+        }
+
+        if (min > max)
+        {
+            return range_error(l);
+        }
+
+        uint32_t range = max - min + 1;
+        lua_pushinteger(l, min + (xoshiro128_next(o) % range));
+        return 1;
+    }
+
+    static int double_num(lua_State* l) {
+        Xoshiro128Ctx *o = checkInstance(l, 1);
+        // Maps 32-bit unsigned integer cleanly to [0, 1) float interval
+        double val = (xoshiro128_next(o) >> 8) * (1.0 / 16777216.0);
+        lua_pushnumber(l, val);
+        return 1;
+    }
+
+    static int double_range(lua_State* l) {
+        Xoshiro128Ctx *o = checkInstance(l, 1);
+        double min = luaL_checknumber(l, 2);
+        double max = luaL_checknumber(l, 3);
+
+        if (min == max)
+        {
+            return fixed_value(l, min);
+        }
+
+        if (min > max)
+        {
+            return range_error(l);
+        }
+
+        double factor = (xoshiro128_next(o) >> 8) * (1.0 / 16777216.0);
+        lua_pushnumber(l, min + factor * (max - min));
+        return 1;
+    }
+
+    static int toss(lua_State* l) {
+        Xoshiro128Ctx *o = checkInstance(l, 1);
+        lua_pushinteger(l, xoshiro128_next(o) & 1);
+        return 1;
+    }
+
+    static int roll(lua_State* l) {
+        Xoshiro128Ctx *o = checkInstance(l, 1);
+        lua_pushinteger(l, 1 + (xoshiro128_next(o) % 6));
+        return 1;
+    }
+
+    static int gc(lua_State* l) {
+        // Lua's garbage collection manages the userdata lifespans natively
+        return 0;
+    }
+
+    public:
+    static int create(lua_State *L) {
+        Xoshiro128Ctx *o = (Xoshiro128Ctx*)lua_newuserdata(L, sizeof(Xoshiro128Ctx));
+        lua_boxpointer(L, o);
+        luaL_getmetatable(L, className);
+        lua_setmetatable(L, -2);
+
+        uint32_t initial_seed;
+        if (lua_gettop(L) > 4 && !lua_isnil(L, 1) && !lua_isnil(L, 2) && !lua_isnil(L, 3) && !lua_isnil(L, 4)) {
+            uint32_t s2, s3, s4;
+            initial_seed = (uint32_t)luaL_checkinteger(L, 1);
+            s2 = (uint32_t)luaL_checkinteger(L, 2);
+            s3 = (uint32_t)luaL_checkinteger(L, 3);
+            s4 = (uint32_t)luaL_checkinteger(L, 4);
+            o->s[0] = initial_seed;
+            o->s[1] = s2;
+            o->s[2] = s3;
+            o->s[3] = s4;                        
+        } else if (lua_gettop(L) > 1 && !lua_isnil(L, 1)) {
+            initial_seed = (uint32_t)luaL_checkinteger(L, 1);            
+            xoshiro128_seed(o, initial_seed);
+        } else {
+            // Fallback placeholder for entropy seed implementation
+            initial_seed = (uint32_t)(time(NULL) ^ rand());
+            xoshiro128_seed(o, initial_seed);
+        }
+
+        return 1;
+    }
+
+    static void Register(lua_State *l) {
+        RegisterRng(l, className, methods, create, gc);
+    }   
+};
+
 class Rng
 {
     public:
@@ -324,13 +453,18 @@ class Rng
         LuaTinyMT32::create(l);
         return 1;
     }
-        
+
+    static int xoshiro128(lua_State *l) {
+        LuaXoshiro128::create(l);
+        return 1;
+    }        
 };
 
 static const struct luaL_reg rnglib [] =
 {
     { "pcg32", Rng::pcg32 },
     { "tinymt32", Rng::tinymt32 },
+    { "xoshiro128", Rng::xoshiro128 },
     { NULL, NULL }
 };
 
@@ -360,7 +494,19 @@ const luaL_reg LuaTinyMT32::methods[] = {
     {0,0}
 };
 
+const char LuaXoshiro128::className[] = "Xoshiro128";
 
+const luaL_reg LuaXoshiro128::methods[] = {
+    method(LuaXoshiro128, seed),
+    method(LuaXoshiro128, number),
+    { "double", LuaXoshiro128::double_num },
+    method(LuaXoshiro128, range),
+    method(LuaXoshiro128, double_range),
+    method(LuaXoshiro128, roll),
+    method(LuaXoshiro128, toss),
+    method(LuaXoshiro128, jump),
+    {0,0}
+};
 
 static void RngLuaInit(lua_State *l)
 {
@@ -388,7 +534,8 @@ dmExtension::Result init_rng(dmExtension::Params *params)
     RngLuaInit(params->m_L); //registers rng
     LuaPcg32::Register(params->m_L);
     LuaTinyMT32::Register(params->m_L);
-    
+    LuaXoshiro128::Register(params->m_L);
+        
     dmLogInfo("Registered %s Extension\n", MODULE_NAME);
     return dmExtension::RESULT_OK;
 }
